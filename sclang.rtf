@@ -1,0 +1,53 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1038\cocoasubrtf350
+{\fonttbl\f0\fnil\fcharset0 Monaco;}
+{\colortbl;\red255\green255\blue255;\red191\green0\blue0;\red0\green0\blue191;}
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+
+\f0\fs18 \cf0 \
+\cf2 // .sclang.sc\cf0 \
+\
+\cf2 /*\
+This file is the parser of instructions coming from Python on the \
+Audio Server Prosthetic. Currently there is only the Whistler engine,\
+but future engines will are possible.\
+\
+In the case of the Whistler engine, an OSC message is sent from Python\
+to the Whistler class, which responds. Like this:\
+\
+Python (sending to IP: 127.0.0.1 on Port: 57120) :\
+// arg order: trackID, gender, age, emotion, time, numwhistlestoday, searchterms (N numbers of)\
+osc.sendOSC('/render_whistle',  3233, 2, 92, "thrilled", 13, 2, "coffee", "biscuits", "new york")\
+\
+And SC responds to Python (sending to IP: 127.0.0.1 on Port: 57100):\
+// arg order: trackID, filename\
+python.sendMsg('/render_whistle',  3233, "~/3233.aif")\
+\
+Here other sound engines will be started as well, such as\
+y = Beatboxer.new;\
+\
+*/\cf0 \
+\
+\
+x = \cf3 Whistler\cf0 .new;\
+\
+\cf2 \
+\
+// For testing:\
+\cf0 \
+\cf2 /*\
+\
+// calling the class directly\
+\
+x.renderMode = false;\
+x.render( 2223, 2, 22, "stranged", 19, 2, ["coffee", "surfing", "hotchocolate"])\
+\
+// or via OSC\
+\
+a = NetAddr("127.0.0.1", 57120)\
+a.sendMsg('/render_whistle',  3233, 2, 92, "thrilled", 13, 2, "coffee", "biscuits", "new york")\
+\
+*/\cf0 \
+\
+\
+\
+}
