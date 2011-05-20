@@ -61,6 +61,8 @@ Whistler {
 		var emotion, tempo, pattern, trackduration; 
 		var direction, from, to;
 
+		"------------- new render -----------".postln; // this is to format nicely the logs in the server
+		Date.localtime.postln;
 		("--> trackID :" + trackID).postln;
 		("--> gender :" + genderarg).postln;
 		("--> age :" + agearg).postln;
@@ -152,7 +154,6 @@ Whistler {
 		}, {
 			// pattern rendering do not render according to changed tempoclock.
 			"... about to render ...".postln;
-			Date.localtime.postln;
 			("--> trackduration is" + trackduration).postln;
 			("--> durations.flatten.sum+0.5 is" + durations.flatten.sum+0.5).postln;
 			("--> trackname is ~/" + trackname).standardizePath.postln;
