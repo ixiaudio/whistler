@@ -37,7 +37,6 @@ Whistler {
 		python = NetAddr("127.0.0.1", 57000); // python listens to OSC on port 57000
 		// the BeatBoxer class will do '/render_beatbox'
 		OSCresponderNode(nil, '/render_whistle', { |t, r, msg| 
-			"... received OSC render instructions from python!! ...".postln;
 			this.render(msg[1], msg[2], msg[3], msg[4], msg[5], msg[6], msg[7..msg.size]);
 		}).add;
 
@@ -61,6 +60,8 @@ Whistler {
 		var emotion, tempo, pattern, trackduration; 
 		var direction, from, to;
 
+		"------------- new render -----------".postln; // this is to format nicely the logs in the server
+		Date.localtime.postln;
 		("--> trackID :" + trackID).postln;
 		("--> gender :" + genderarg).postln;
 		("--> age :" + agearg).postln;
@@ -69,13 +70,15 @@ Whistler {
 		("--> numwhistlestoday :" + numwhistlestodayarg).postln;
 		("--> searchwords :" + searchwordsarg).postln;
 
-		searchwords = if((searchwordsarg.size==0) || (searchwordsarg==nil), {["xylophone", "voices", "new york", "phone"]}, { searchwordsarg });
+		timearg = timearg + 1; // quick hack to avoid 0!
+
+		searchwords = searchwordsarg ? ["xylophone", "voices", "new york", "phone"];
 		gender = genderarg ? 2; // male (1), object (2) and female (3)
 		numwhistlestoday = numwhistlestodayarg ? 1; // the number of whistles until now/today
 		age = agearg ? 96; // max 120 years
 		time = timearg ? 12; // time is from 0 to 24
-		emotion = if((emotionarg == nil) || (emotionarg == ""), { "funky" }, { emotionarg });
-				
+		emotion = emotionarg ? "funky";
+		
 		trackname = trackID.asString++".aif";
 		searchwords = searchwords.collect({arg symbol; symbol.asString}); // if python is sending a symbol
 		
