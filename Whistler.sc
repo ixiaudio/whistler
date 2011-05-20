@@ -151,6 +151,7 @@ Whistler {
 		}, {
 			// pattern rendering do not render according to changed tempoclock.
 			"... about to render ...".postln;
+			Date.localtime.postln;
 			("--> trackduration is" + trackduration).postln;
 			("--> durations.flatten.sum+0.5 is" + durations.flatten.sum+0.5).postln;
 			("--> trackname is ~/" + trackname).standardizePath.postln;
