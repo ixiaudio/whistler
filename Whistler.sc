@@ -149,13 +149,14 @@ Whistler {
 				\damp, 0.2, 
 				\time, trackduration, 
 				\fromA, from, 
-				\toB, to).play;
+				\toB, to
+			).play;
 		}, {
 			// pattern rendering do not render according to changed tempoclock.
 			"... about to render ...".postln;
 			("--> trackduration is" + trackduration).postln;
-			("--> durations.flatten.sum+0.5 is" + durations.flatten.sum+0.5).postln;
-			("--> trackname is ~/" + trackname).standardizePath.postln;
+			("--> duration is" + durations.flatten.sum+0.5).postln;
+			("--> trackname is " + ("~/" ++ trackname).standardizePath).postln;
 			//serveroptions.postln;
 			Pfx(mainpattern, \whistlerspace, 
 				\mix, 0.2, 
