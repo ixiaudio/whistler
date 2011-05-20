@@ -87,7 +87,7 @@ Whistler {
 		tempo = if(time<8, {24}, {time}).linexp(8, 24, 1.5, 0.5); // (at 8am people are upbeat, at midnight slow)
 		TempoClock.default.tempo = tempo;
 		
-		scale = scales[((emotion.size+time)%scales.size)-1].degrees++12; // picking scales from emotion word size and time of day
+		scale = scales[((emotion.size+time)%scales.size-1)].degrees++12; // picking scales from emotion word size and time of day
 
 		// --------- FORM: using search word values to create a musical form (e.g., ABACA) ---------
 		
