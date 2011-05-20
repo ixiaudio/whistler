@@ -69,13 +69,13 @@ Whistler {
 		("--> numwhistlestoday :" + numwhistlestodayarg).postln;
 		("--> searchwords :" + searchwordsarg).postln;
 
-		searchwords = searchwordsarg ? ["xylophone", "voices", "new york", "phone"];
+		searchwords = if((searchwordsarg.size==0) || (searchwordsarg==nil), {["xylophone", "voices", "new york", "phone"]}, { searchwordsarg });
 		gender = genderarg ? 2; // male (1), object (2) and female (3)
 		numwhistlestoday = numwhistlestodayarg ? 1; // the number of whistles until now/today
 		age = agearg ? 96; // max 120 years
 		time = timearg ? 12; // time is from 0 to 24
-		emotion = emotionarg ? "funky";
-		
+		emotion = if((emotionarg == nil) || (emotionarg == ""), { "funky" }, { emotionarg });
+				
 		trackname = trackID.asString++".aif";
 		searchwords = searchwords.collect({arg symbol; symbol.asString}); // if python is sending a symbol
 		
