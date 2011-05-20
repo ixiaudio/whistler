@@ -70,6 +70,8 @@ Whistler {
 		("--> numwhistlestoday :" + numwhistlestodayarg).postln;
 		("--> searchwords :" + searchwordsarg).postln;
 
+		timearg = timearg + 1; // quick hack to avoid 0!
+
 		searchwords = searchwordsarg ? ["xylophone", "voices", "new york", "phone"];
 		gender = genderarg ? 2; // male (1), object (2) and female (3)
 		numwhistlestoday = numwhistlestodayarg ? 1; // the number of whistles until now/today
