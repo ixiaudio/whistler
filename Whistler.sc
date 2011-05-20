@@ -49,6 +49,7 @@ Whistler {
 		serveroptions = Server.default.options;
 		serveroptions.numOutputBusChannels = 2; 
 		serveroptions.sampleRate = 22050; 
+		serveroptions.verbosity = -1; 
 
 	}
 	
