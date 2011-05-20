@@ -37,7 +37,6 @@ Whistler {
 		python = NetAddr("127.0.0.1", 57000); // python listens to OSC on port 57000
 		// the BeatBoxer class will do '/render_beatbox'
 		OSCresponderNode(nil, '/render_whistle', { |t, r, msg| 
-			"... received OSC render instructions from python!! ...".postln;
 			this.render(msg[1], msg[2], msg[3], msg[4], msg[5], msg[6], msg[7..msg.size]);
 		}).add;
 
