@@ -13,7 +13,7 @@ Whistler {
 	initWhistler { 
 		
 		"... init Whistler class ...".postln;
-		this.setFileFormat;
+		this.setServerOptions;
 		this.addSynthDefs;
 		this.setupOSC;
 		
@@ -33,17 +33,20 @@ Whistler {
 	}
 	
 	setupOSC {
+		
 		"... setting up OSC ...".postln;
 		python = NetAddr("127.0.0.1", 57000); // python listens to OSC on port 57000
 		// the BeatBoxer class will do '/render_beatbox'
-		OSCresponderNode(nil, '/render_whistle', { |t, r, msg| 
+		OSCresponderNode(nil, '/render_whistle', { |t, r, msg|
+			[\msg, msg].postln; 
 			this.render(msg[1], msg[2], msg[3], msg[4], msg[5], msg[6], msg[7..msg.size]);
 		}).add;
 
 	}
 	
-	setFileFormat {
-		"... setting file format ...".postln;
+	setServerOptions {
+
+		"... setting server options ...".postln;
 		Server.default.recSampleFormat_("int16");
 		serveroptions = Server.default.options;
 		serveroptions.numOutputBusChannels = 2; 
@@ -75,7 +78,7 @@ Whistler {
 		numwhistlestoday = numwhistlestodayarg ? 1; // the number of whistles until now/today
 		age = agearg ? 96; // max 120 years
 		time = timearg ? 12; // time is from 0 to 24
-		emotion = if((emotionarg == nil) || (emotionarg == ""), { "funky" }, { emotionarg });
+		emotion = if((emotionarg == nil) || (emotionarg == ""), { "funky" }, { emotionarg.asString });
 		
 		trackname = trackID.asString++".aif";
 		searchwords = searchwords.collect({arg symbol; symbol.asString}); // if python is sending a symbol
@@ -94,7 +97,6 @@ Whistler {
 		searchwords = searchwords.insert(if(searchwords[0][0].ascii.even, {2}, {3}), searchwords[0]);
 		searchwords = searchwords.insert(if(searchwords[1][0].ascii < 110, {3}, {searchwords.size}), searchwords[1]);
 		
-		[\searchwords, searchwords].postln;
 		// --------- NOTES: ascii value turned into nearest notes in a scale ---------
 		
 		notes = searchwords.ascii.collect({ arg asciiwordarray, i;
@@ -190,7 +192,7 @@ Whistler {
 			XOut.ar(0, 1, pansig);
 		}, #[0.1, 0.1, 0.1, 0.1, 0.1, 0.1]).store;
 		
-		// version 10 of synthdef:
+		// version 10 of whistling synthdef:
 		
 		SynthDef(\whistler, {arg freq=440, gate=1, noiseamp=0.3, pureamp=1, cutoff=5, attacknoise = 0.6, guttnoise=0.15, vibrato=1.3, pitchslide=0.09;
 			var signal; 
