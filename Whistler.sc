@@ -78,7 +78,7 @@ Whistler {
 		numwhistlestoday = numwhistlestodayarg ? 1; // the number of whistles until now/today
 		age = agearg ? 96; // max 120 years
 		time = timearg ? 12; // time is from 0 to 24
-		emotion = if((emotionarg == nil) || (emotionarg == ""), { "funky" }, { emotionarg.asString });
+		emotion = if((emotionarg == nil) || (emotionarg.asString == ""), { "funky" }, { emotionarg.asString });
 		
 		trackname = trackID.asString++".aif";
 		searchwords = searchwords.collect({arg symbol; symbol.asString}); // if python is sending a symbol
