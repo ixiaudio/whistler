@@ -2,7 +2,6 @@
 Whistler {
 	
 	var serveroptions;
-	var scales;
 	var python, trackID, trackname;
 	var <>renderMode = true;
 	
@@ -16,19 +15,6 @@ Whistler {
 		this.setServerOptions;
 		this.addSynthDefs;
 		this.setupOSC;
-		
-		scales = [ Scale.ritusen, Scale.kumoi, Scale.hirajoshi, Scale.iwato, Scale.chinese,
-				Scale.indian, Scale.pelog, Scale.prometheus, Scale.scriabin, Scale.jiao, 
-				Scale.spanish, Scale.whole, Scale.locrian, Scale.augmented, Scale.augmented2, 
-				Scale.hexMajor7, Scale.shang, Scale.hexDorian, Scale.todi, Scale.hexPhrygian, 
-				Scale.hexSus, Scale.hexMajor6, Scale.major, Scale.bhairav, Scale.ionian, 
-				Scale.dorian, Scale.phrygian, Scale.lydian, Scale.mixolydian, Scale.leadingWhole, 
-				Scale.aeolian, Scale.egyptian, Scale.minor, Scale.harmonicMinor,
-				Scale.harmonicMajor, Scale.yu, Scale.melodicMinor, Scale.melodicMinorDesc, 
-				Scale.melodicMajor, Scale.bartok, Scale.hexAeolian, Scale.hindu, Scale.purvi, 
-				Scale.ahirbhairav, Scale.hungarianMinor, Scale.superLocrian, Scale.romanianMinor, 
-				Scale.zhi, Scale.neapolitanMinor, Scale.enigmatic, Scale.gong, Scale.lydianMinor, 
-				Scale.neapolitanMajor, Scale.locrianMajor, Scale.marva, Scale.diminished ];
 
 	}
 	
@@ -36,10 +22,9 @@ Whistler {
 		
 		"... setting up OSC ...".postln;
 		python = NetAddr("127.0.0.1", 57000); // python listens to OSC on port 57000
-		// the BeatBoxer class will do '/render_beatbox'
+		// the BeatBoxer class will implement '/render_beatbox'
 		OSCresponderNode(nil, '/render_whistle', { |t, r, msg|
-			[\msg, msg].postln; 
-			this.render(msg[1], msg[2], msg[3], msg[4], msg[5], msg[6], msg[7..msg.size]);
+			this.compose(msg[1], msg[2], msg[3], msg[4], msg[5], msg[6], msg[7..msg.size]);
 		}).add;
 
 	}
@@ -55,16 +40,15 @@ Whistler {
 
 	}
 	
-	render { arg trackID, genderarg, agearg, emotionarg, timearg, numwhistlestodayarg, searchwordsarg;
+	compose { arg trackID, genderarg, agearg, emotionarg, timearg, numwhistlestodayarg, searchwordsarg;
 		
-		var searchwords, gender, numwhistlestoday, age, time;
-		var scale, notes, durations, sustain;
-		var mainpattern, notepattern, durpattern, sustainpattern;
-		var emotion, tempo, pattern, trackduration; 
+		var gender, age, emotion, time, numwhistlestoday, searchwords;
+		var scales, scale, notes, durations, sustain;
+		var scorepattern, mainpattern, notepatterns, durpatterns, sustainpatterns;
+		var tempo, trackduration; 
 		var direction, from, to;
 
-		"------------- new render -----------".postln; // this is to format nicely the logs in the server
-		Date.localtime.postln;
+		"------- new composition @ ".post; Date.localtime.post; " -------".postln; // info to keep in the logs of the Weavr audio server
 		("--> trackID :" + trackID).postln;
 		("--> gender :" + genderarg).postln;
 		("--> age :" + agearg).postln;
@@ -73,7 +57,7 @@ Whistler {
 		("--> numwhistlestoday :" + numwhistlestodayarg).postln;
 		("--> searchwords :" + searchwordsarg).postln;
 
-		searchwords = if((searchwordsarg.size==0) || (searchwordsarg==nil), {["xylophone", "voices", "new york", "phone"]}, { searchwordsarg });
+		searchwords = if((searchwordsarg.size==0) || (searchwordsarg==nil), {["xylophone", "voices", "new york"]}, { searchwordsarg });
 		gender = genderarg ? 2; // male (1), object (2) and female (3)
 		numwhistlestoday = numwhistlestodayarg ? 1; // the number of whistles until now/today
 		age = agearg ? 96; // max 120 years
@@ -90,13 +74,26 @@ Whistler {
 		tempo = if(time<8, {24}, {time}).linexp(8, 24, 1.5, 0.5); // (at 8am people are upbeat, at midnight slow)
 		TempoClock.default.tempo = tempo;
 		
+		scales = [ Scale.ritusen, Scale.kumoi, Scale.hirajoshi, Scale.iwato, Scale.chinese,
+				Scale.indian, Scale.pelog, Scale.prometheus, Scale.scriabin, Scale.jiao, 
+				Scale.spanish, Scale.whole, Scale.locrian, Scale.augmented, Scale.augmented2, 
+				Scale.hexMajor7, Scale.shang, Scale.hexDorian, Scale.todi, Scale.hexPhrygian, 
+				Scale.hexSus, Scale.hexMajor6, Scale.major, Scale.bhairav, Scale.ionian, 
+				Scale.dorian, Scale.phrygian, Scale.lydian, Scale.mixolydian, Scale.leadingWhole, 
+				Scale.aeolian, Scale.egyptian, Scale.minor, Scale.harmonicMinor,
+				Scale.harmonicMajor, Scale.yu, Scale.melodicMinor, Scale.melodicMinorDesc, 
+				Scale.melodicMajor, Scale.bartok, Scale.hexAeolian, Scale.hindu, Scale.purvi, 
+				Scale.ahirbhairav, Scale.hungarianMinor, Scale.superLocrian, Scale.romanianMinor, 
+				Scale.zhi, Scale.neapolitanMinor, Scale.enigmatic, Scale.gong, Scale.lydianMinor, 
+				Scale.neapolitanMajor, Scale.locrianMajor, Scale.marva, Scale.diminished ];
+		
 		scale = scales[((emotion.size+time)%scales.size-1)].degrees++12; // picking scales from emotion word size and time of day
 
 		// --------- FORM: using search word values to create a musical form (e.g., ABACA) ---------
 		
 		searchwords = searchwords.insert(if(searchwords[0][0].ascii.even, {2}, {3}), searchwords[0]);
 		searchwords = searchwords.insert(if(searchwords[1][0].ascii < 110, {3}, {searchwords.size}), searchwords[1]);
-		
+				
 		// --------- NOTES: ascii value turned into nearest notes in a scale ---------
 		
 		notes = searchwords.ascii.collect({ arg asciiwordarray, i;
@@ -113,14 +110,13 @@ Whistler {
 				}) ++ (word.size/15); // silence between each word depends on its length
 			});
 			
-		// --------- SUSTAIN:  turned into note sustain ---------
+		// --------- SUSTAIN: vowels/consonants turned into note sustain ---------
 		
 		sustain = searchwords.collect({arg word;
 				word.separate.collect({arg char;
 					if(char[0].isVowel, {if(char[0].ascii<112, {0.8}, {0.4})}, {if(char[0].ascii<112, {0.4}, {0.25}) });
-				}) ++ (word.size/10)-0.1; // a little shorter sustain
+				}) ++ (word.size/10)-0.1; // the sustain is a little shorter than the note
 			});
-
 			
 		// --------- SET PITCH: (males tonic = 60) (females tonic = 72) ---------
 		
@@ -128,54 +124,60 @@ Whistler {
 		
 		// --------- MAKE PATTERN: vowels/consonants turned into note durations ---------
 		
-		notepattern = notes.collect({ arg array; Pseq(array, 1) });
-		durpattern = durations.collect({ arg array; Pseq(array, 1) });
-		sustainpattern = sustain.collect({ arg array; Pseq(array, 1) });
-		
-		mainpattern = Pbind(\instrument, \whistler,
-							\midinote, 	Pseq(notepattern, 1), 
-							\dur,  		Pseq(durpattern, 1),
-							\sustain,  	Pseq(sustainpattern, 1),
-							\noiseamp, 	age.linexp(1, 120, 0.2, 0.6)
-					   );
-				
-		// --------- RENDERING ---------
-		
+		notepatterns = notes.collect({ arg array; Pseq(array, 1) });
+		durpatterns = durations.collect({ arg array; Pseq(array, 1) });
+		sustainpatterns = sustain.collect({ arg array; Pseq(array, 1) });
 		trackduration = durations.flatten.sum*tempo.reciprocal;
 
+		scorepattern = Pbind(\instrument, \whistler,
+						   \midinote, 	Pseq(notepatterns, 1), 
+						   \dur,  		Pseq(durpatterns, 1),
+						   \sustain,  	Pseq(sustainpatterns, 1),
+						   \noiseamp, 	age.linexp(1, 120, 0.2, 0.6)
+					 );
+		
+		// future robots will use more info (location, environment, weather) to control environment (space)
+		mainpattern = Pfx(scorepattern, \whistlerspace, 
+					     \mix, 	0.2, 
+						\rtime, 	0.2, 
+						\damp, 	0.2, 
+						\time, 	trackduration, 
+						\fromA, 	from, 
+						\toB, 	to
+					);
+		
+		// --------- EITHER RENDER or PLAY (in dev mode)  ---------
+
 		if(renderMode.not, { // if in development mode
-			mainpattern.asCompileString.postln;
-			Pfx(mainpattern, \whistlerspace, 
-				\mix, 0.2, 
-				\rtime, 0.2, 
-				\damp, 0.2, 
-				\time, trackduration, 
-				\fromA, from, 
-				\toB, to
-			).play;
+			scorepattern.asCompileString.postln;
+			mainpattern.play;
 		}, {
-			// pattern rendering do not render according to changed tempoclock.
 			"... about to render ...".postln;
-			("--> trackduration is" + trackduration).postln;
-			("--> duration is" + durations.flatten.sum+0.5).postln;
-			("--> trackname is " + ("~/" ++ trackname).standardizePath).postln;
-			//serveroptions.postln;
-			Pfx(mainpattern, \whistlerspace, 
-				\mix, 0.2, 
-				\rtime, 0.2, 
-				\damp, 0.2, 
-				\time, trackduration, 
-				\fromA, from, 
-				\toB, to
-			).render(
-				("~/"++trackname).standardizePath, 
-				durations.flatten.sum+0.5, 
-				sampleFormat: "int16", 
-				options:serveroptions
-			);
+			("--> Trackduration :" + trackduration).postln;
+			("--> Trackname :" + ("~/" ++ trackname).standardizePath).postln;
+			this.render(mainpattern, durations.flatten.sum+0.2); // renderdurations are different from track dur (due to TempoClock)
 		});
 
-		{python.sendMsg('/rendered_whistle', trackID, trackname)}.defer(2); // wait 2 secs and send to Python.
+	}
+	
+	render {arg pattern, renderduration;
+			
+		// pattern rendering do not render according to changed tempoclock.
+		// thus the specific renderduration arg (as opposed to using the 'trackduration' variable)
+		// an SC bug?
+			
+		pattern.render(
+			("~/"++trackname).standardizePath, 
+			renderduration, 
+			sampleFormat: "int16", 
+			options:serveroptions
+		);
+		
+		// The 'BeatBoxer' class will send '/rendered_beatbox' back to Python
+		// NOTE: The 2 sec wait before announcing to Python is needed since in SC 3.4, there is no doneMessage
+		// after rendering. In SC 3.5, this has been addressed and we will then call Python from there
+
+		{ python.sendMsg('/rendered_whistle', trackID, trackname) }.defer(2); // wait 2 secs and send to Python.
 
 	}
 	
@@ -184,7 +186,7 @@ Whistler {
 		"... adding synthdefs ...".postln;
 		
 		SynthDef(\whistlerspace, { arg mix=0.2, rtime=0.1, damp=0.1, speed=2, time = 14, fromA= -0.8, toB=0.8 ;
-			var env, in, ampsig, reverbsig, pansig;
+			var in, ampsig, reverbsig, pansig;
 			in = In.ar(0, 1);
 			ampsig = EnvGen.ar(Env.linen(speed*0.5, time-speed, speed*0.5, 1), doneAction:2);
 			reverbsig = FreeVerb.ar(in * ampsig, mix, rtime, damp);
@@ -195,8 +197,7 @@ Whistler {
 		// version 10 of whistling synthdef:
 		
 		SynthDef(\whistler, {arg freq=440, gate=1, noiseamp=0.3, pureamp=1, cutoff=5, attacknoise = 0.6, guttnoise=0.15, vibrato=1.3, pitchslide=0.09;
-			var signal; 
-			var unienv;
+			var signal, unienv;
 			var harmonics, noisesource;
 			var onset, onsetenv;
 			
