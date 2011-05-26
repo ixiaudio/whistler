@@ -71,7 +71,7 @@ Whistler {
 		from = age.linlin(0, 120, 0.95, 0.1) * direction;
 		to = age.linlin(0, 120, -0.1, -0.95) * direction;
 				
-		tempo = if(time<8, {24}, {time}).linexp(8, 24, 1.5, 0.5); // (at 8am people are upbeat, at midnight slow)
+		tempo = if(time<7, {23}, {time}).linexp(7, 23, 1.5, 0.7); // (at 7am bots are upbeat, around midnight slow)
 		TempoClock.default.tempo = tempo;
 		
 		scales = [ Scale.ritusen, Scale.kumoi, Scale.hirajoshi, Scale.iwato, Scale.chinese,
