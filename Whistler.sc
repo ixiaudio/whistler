@@ -120,7 +120,7 @@ Whistler {
 			
 		// --------- SET PITCH: (males tonic = 60) (females tonic = 72) ---------
 		
-		notes = notes + switch(gender) {1} {72+numwhistlestoday} {2} {76+numwhistlestoday} {3} {80+numwhistlestoday};
+		notes = notes + switch(gender) {1} {76+numwhistlestoday} {2} {80+numwhistlestoday} {3} {84+numwhistlestoday};
 		
 		// --------- MAKE PATTERN: vowels/consonants turned into note durations ---------
 		
