@@ -40,7 +40,7 @@ Whistler {
 
 	}
 	
-	compose { arg trackID, genderarg, agearg, emotionarg, timearg, numwhistlestodayarg, searchwordsarg;
+	compose { arg trackID, genderarg, agearg, emotionarg, timearg, numwhistlestodayarg, searchwordsarg, groove=true;
 		
 		var gender, age, emotion, time, numwhistlestoday, searchwords;
 		var scales, scale, notes, durations, sustain;
@@ -59,11 +59,12 @@ Whistler {
 
 		searchwords = if((searchwordsarg.size==0) || (searchwordsarg==nil), {["xylophone", "voices", "new york"]}, { searchwordsarg });
 		gender = genderarg ? 2; // male (1), object (2) and female (3)
-		numwhistlestoday = numwhistlestodayarg ? 1; // the number of whistles until now/today
+		numwhistlestoday = 6.min(numwhistlestodayarg ? 1); // the number of whistles until now/today, but capping at 3
+		//numwhistlestoday = if( numwhistlestoday > 3, { 3 }, { numwhistlestoday });
 		age = agearg ? 96; // max 120 years
 		time = timearg ? 12; // time is from 0 to 24
 		emotion = if((emotionarg == nil) || (emotionarg.asString == ""), { "funky" }, { emotionarg.asString });
-		
+
 		trackname = trackID.asString++".aif";
 		searchwords = searchwords.collect({arg symbol; symbol.asString}); // if python is sending a symbol
 		
@@ -71,7 +72,7 @@ Whistler {
 		from = age.linlin(0, 120, 0.95, 0.1) * direction;
 		to = age.linlin(0, 120, -0.1, -0.95) * direction;
 				
-		tempo = if(time<7, {23}, {time}).linexp(7, 23, 1.5, 0.7); // (at 7am bots are upbeat, around midnight slow)
+		tempo = if(time<7, {23}, {time}).linexp(7, 23, 1.6, 0.9); // (at 7am bots are upbeat, around midnight slow)
 		TempoClock.default.tempo = tempo;
 		
 		scales = [ Scale.ritusen, Scale.kumoi, Scale.hirajoshi, Scale.iwato, Scale.chinese,
@@ -102,25 +103,43 @@ Whistler {
 				}) ++ '\rest';
 			});
 		
+		if(groove, {		
+		// --------- DURATIONS: vowels/consonants turned into note durations ---------
+		
+		durations = searchwords.collect({arg word;
+				word.separate.collect({arg char;
+					if(char[0].isVowel, {if(char[0].ascii<112, {1+((tempo.reciprocal/4).rand)}, {0.5+((tempo.reciprocal/6).rand)})}, {if(char[0].ascii<112, {1+((tempo.reciprocal/7).rand)}, {0.5+((tempo.reciprocal/9).rand)}) });
+				}) ++ (word.size/10).round(0.5); // silence between each word depends on its length
+			});
+			
+		// --------- SUSTAIN: vowels/consonants turned into note sustain ---------
+	
+		sustain = searchwords.collect({arg word;
+				word.separate.collect({arg char;
+					if(char[0].isVowel, {if(char[0].ascii<112, {0.9-((tempo/10).rand)}, {0.4-((tempo/20).rand)})}, {if(char[0].ascii<112, {0.9-((tempo/10).rand)}, {0.4-((tempo/20).rand)}) });
+				}) ++ (word.size/10); // the sustain is a little shorter than the note
+			});
+		},{
 		// --------- DURATIONS: vowels/consonants turned into note durations ---------
 		
 		durations = searchwords.collect({arg word;
 				word.separate.collect({arg char;
 					if(char[0].isVowel, {if(char[0].ascii<112, {1}, {0.5})}, {if(char[0].ascii<112, {0.5}, {0.25}) });
-				}) ++ (word.size/15); // silence between each word depends on its length
+				}) ++ (word.size/15).round(0.25); // silence between each word depends on its length
 			});
 			
 		// --------- SUSTAIN: vowels/consonants turned into note sustain ---------
-		
+	
 		sustain = searchwords.collect({arg word;
 				word.separate.collect({arg char;
 					if(char[0].isVowel, {if(char[0].ascii<112, {0.8}, {0.4})}, {if(char[0].ascii<112, {0.4}, {0.25}) });
 				}) ++ (word.size/10)-0.1; // the sustain is a little shorter than the note
 			});
 			
-		// --------- SET PITCH: (males tonic = 60) (females tonic = 72) ---------
+		});
+		// --------- SET PITCH: (males tonic = 76, objects = 79, females = 82) ---------
 		
-		notes = notes + switch(gender) {1} {76+numwhistlestoday} {2} {80+numwhistlestoday} {3} {84+numwhistlestoday};
+		notes = notes + switch(gender) {1} {76+numwhistlestoday} {2} {79+numwhistlestoday} {3} {82+numwhistlestoday};
 		
 		// --------- MAKE PATTERN: vowels/consonants turned into note durations ---------
 		
@@ -133,7 +152,8 @@ Whistler {
 						   \midinote, 	Pseq(notepatterns, 1), 
 						   \dur,  		Pseq(durpatterns, 1),
 						   \sustain,  	Pseq(sustainpatterns, 1),
-						   \noiseamp, 	age.linexp(1, 120, 0.2, 0.6)
+						   \noiseamp, 	age.linexp(1, 120, 0.2, 0.6),
+						   \amp, 			1
 					 );
 		
 		// future robots will use more info (location, environment, weather) to control environment (space)
@@ -194,9 +214,9 @@ Whistler {
 			XOut.ar(0, 1, pansig);
 		}, #[0.1, 0.1, 0.1, 0.1, 0.1, 0.1]).store;
 		
-		// version 10 of whistling synthdef:
+		// version 11 of whistling synthdef (blown filter limiters put in place and amp added):
 		
-		SynthDef(\whistler, {arg freq=440, gate=1, noiseamp=0.3, pureamp=1, cutoff=5, attacknoise = 0.6, guttnoise=0.15, vibrato=1.3, pitchslide=0.09;
+		SynthDef(\whistler, {arg freq=440, amp=1, gate=1, noiseamp=0.3, pureamp=1, cutoff=5, attacknoise = 0.6, guttnoise=0.15, vibrato=1.3, pitchslide=0.09;
 			var signal, unienv;
 			var harmonics, noisesource;
 			var onset, onsetenv;
@@ -212,7 +232,7 @@ Whistler {
 		
 			// -- the harmonic spectrum of the whistle, letting through noise as well, although the saw takes care of the harmonics
 			harmonics = DynKlank.ar(`[
-						[freq, freq*2, freq*3, freq*4], 
+						[freq, freq*2, 18000.min(freq*3), 18000.min(freq*4)], // make sure filters are not blown 
 						[0.8, 0.15, 0.09, 0.07] * LFNoise2.ar(2, 0.5, 0.5), 
 						[0.9, 0.4, 0.1, 0.03 ]], 
 						Saw.ar(freq, 0.001 * pureamp * EnvGen.ar(Env.adsr(Rand(0.0001, 0.2), Rand(0.2, 0.5), Rand(0.4, 0.8), Rand(0.1, 0.2))))
@@ -223,11 +243,11 @@ Whistler {
 					+ 
 					BPF.ar(WhiteNoise.ar(0.4 * noiseamp * attacknoise * EnvGen.ar(Env.perc(0.1, 0.6))), freq, 0.1);
 					
-			signal = LPF.ar(harmonics + noisesource, freq * cutoff * EnvGen.ar(Env.adsr(Rand(0.0001, 0.2), Rand(0.2, 2.5), Rand(0.4, 0.8), Rand(0.1, 0.2))));
+			signal = LPF.ar(harmonics + noisesource, 18200.min(freq * cutoff) * EnvGen.ar(Env.adsr(Rand(0.0001, 0.2), Rand(0.2, 2.5), Rand(0.4, 0.8), Rand(0.1, 0.2))));
 			signal = LPF.ar(signal, 1000); // make sure high pitches loose the harmonics (become too edgy up there)
 			unienv = EnvGen.ar(Env.asr(0.0001, 1, 0.2), gate, doneAction:2); // reverb time?
 			signal = (signal * unienv) + (onset * onsetenv);
-			Out.ar(0, signal*4.5);
+			Out.ar(0, LeakDC.ar(signal*(4.5*amp)));
 		}).store;
 	}
 }
