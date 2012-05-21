@@ -229,7 +229,16 @@ Whistler {
 
 	render {arg pattern, renderduration;
 		var whistlescore, renderFunc;
+
+		var finishedRenderAction;
 		
+		finishedRenderAction = {
+			"Finished rendering track: ".post; trackname.postln;
+			"----------------------------------------------------------------".postln;
+			"----------------------------------------------------------------".postln;
+			{ python.sendMsg('/rendered_whistle', trackID, trackname) }.defer(1);
+		};
+
 /*		
 		pattern.render(
 			("~/"++trackname).standardizePath, 
@@ -247,14 +256,11 @@ Whistler {
 							sampleFormat: "int16", 
 							options: serveroptions,
 							duration: renderduration,
-							completionString: "; rm whistle-oscFile"
+							completionString: "; rm whistle-oscFile",
+							action: {finishedRenderAction.value} // only works on > SC 3.4
 						);
-		
-		// The 'BeatBoxer' class will send '/rendered_beatbox' back to Python
-		// NOTE: The 2 sec wait before announcing to Python is needed since in SC 3.4, there is no doneMessage
-		// after rendering. In SC 3.5, this has been addressed and we will then call Python from there
-
-		{ python.sendMsg('/rendered_whistle', trackID, trackname) }.defer(2); // wait 2 secs and send to Python.
+	
+		// { python.sendMsg('/rendered_whistle', trackID, trackname) }.defer(2); // SC 3.4 code - wait 2 secs and send to Python.
 
 	}
 
