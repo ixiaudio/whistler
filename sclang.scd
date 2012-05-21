@@ -25,9 +25,10 @@ y = Beatboxer.new;
 "******* sclang starting up @ ".post; Date.localtime.post; " *******".postln; 
 Ê
 x = Whistler.new;
-Ê
+y = Botstepper.new;
+
 // the garbage collector for non-gui non-server-running non-.app Linux machines
-// basically an SC bug that has been fixed in new SC 3.4.3 releases
+// basically an SC bug that has been fixed in SC releases from 3.4.3 
 { inf.do({ var gca; gca = [33,44,55]; 10.wait; gca = nil; 10.wait; }) }.fork;
 Ê
 
@@ -38,8 +39,8 @@ x = Whistler.new;
 
 // calling the class directly
 
-x.renderMode = false;
-x.compose( 16, 1, 40, "doggy", 7, 2, ["axa", "ici", "oco"], true)
+x.renderMode = true;
+x.compose( 316, 1, 40, "doggy", 7, 2, ["thorhallur", "birta", "loki"], true)
 
 // or via OSC
 
@@ -53,11 +54,17 @@ x = Whistler.new;
 
 x.renderMode = false;
 
-x.compose( 16, 1, 10, "confused", 11, 6, ["calvo", "pelambreras", "xyz"], true);
+x.compose( 219, 1, 10, "confused", 11, 6, ["calvo", "pelambreras", "xyz"], true);
 
 a.sendMsg('/render_whistle', 12345, 1, 10, "abcdefghijklmno", 8, 3, "xxcat", "hat", "pat")
-x.compose( 16, 1, 10, "confused", 11, 6, ["calvo", "pelambreras", "xyz"], true);
-x.compose( 16, 3, 60, "sad", 18, 2, ["calvo", "wine", "porro"], true);
+x.compose( 11119, 1, 10, "confused", 11, 6, ["calvo", "pelambreras", "xyz"], true);
+x.compose( 16, 1, 60, "sad", 18, 2, ["calvo", "wine", "porro"], true);
+x.compose( 23316, 1, 60, "funky", 23, 2, ["dogs", "cats", "chocolate"], true);
+
+x.compose( 2336, 2, 30, "funky", 23, 2, ["ziiggy", "fodd", "chocolate"], true);
+
+x.compose( 4433, 1, 90, "funky", 7, 2, ["hotdog", "coke", "love"], true);
+
 
 
 */

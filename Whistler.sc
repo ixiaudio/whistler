@@ -1,25 +1,44 @@
+/*
+    whistling.sc - Whistling for Weavrs
+    Copyright (c) 2011 Philter Phactory Limited
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 
 Whistler {
-	
-	var serveroptions;
+
+	var serveroptions, envirsoundsArray, envirsound, envirbuffer;
 	var python, trackID, trackname;
 	var <>renderMode = true;
-	
-	*new { 		
+
+	*new {
+		
 		^super.new.initWhistler;
+	
 	}
-		
-	initWhistler { 
-		
+
+	initWhistler { 	
+
 		"... init Whistler class ...".postln;
 		this.setServerOptions;
 		this.addSynthDefs;
 		this.setupOSC;
 
 	}
-	
+
 	setupOSC {
-		
+
 		"... setting up OSC ...".postln;
 		python = NetAddr("127.0.0.1", 57000); // python listens to OSC on port 57000
 		// the BeatBoxer class will implement '/render_beatbox'
@@ -28,23 +47,23 @@ Whistler {
 		}).add;
 
 	}
-	
+
 	setServerOptions {
 
 		"... setting server options ...".postln;
-		Server.default.recSampleFormat_("int16");
+		Server.default.recSampleFormat_("int24");
 		serveroptions = Server.default.options;
 		serveroptions.numOutputBusChannels = 2; 
-		serveroptions.sampleRate = 22050; 
+		serveroptions.sampleRate = 44100; 
 		serveroptions.verbosity = -1; 
 
 	}
-	
+
 	compose { arg trackID, genderarg, agearg, emotionarg, timearg, numwhistlestodayarg, searchwordsarg, groove=true;
-		
+
 		var gender, age, emotion, time, numwhistlestoday, searchwords;
 		var scales, scale, notes, durations, sustain;
-		var scorepattern, mainpattern, notepatterns, durpatterns, sustainpatterns;
+		var scorepattern,  envirpattern, mainpattern, mixerpattern, notepatterns, durpatterns, sustainpatterns;
 		var tempo, trackduration; 
 		var direction, from, to;
 
@@ -71,9 +90,11 @@ Whistler {
 		direction = if(emotion.size.even, {-1}, {1});
 		from = age.linlin(0, 120, 0.95, 0.1) * direction;
 		to = age.linlin(0, 120, -0.1, -0.95) * direction;
-				
-		tempo = if(time<7, {23}, {time}).linexp(7, 23, 1.6, 0.9); // (at 7am bots are upbeat, around midnight slow)
+		
+		tempo = if(time<7, {23}, {time}).linlin(7, 23, 1.9, 0.9); // (at 7am bots are upbeat, around midnight slow)
 		TempoClock.default.tempo = tempo;
+		
+		envirsound = envirsoundsArray.choose;
 		
 		scales = [ Scale.ritusen, Scale.kumoi, Scale.hirajoshi, Scale.iwato, Scale.chinese,
 				Scale.indian, Scale.pelog, Scale.prometheus, Scale.scriabin, Scale.jiao, 
@@ -103,42 +124,59 @@ Whistler {
 				}) ++ '\rest';
 			});
 		
-		if(groove, {		
-		// --------- DURATIONS: vowels/consonants turned into note durations ---------
+		if(groove, {	// GROOVE !!!
+			// --------- DURATIONS: vowels/consonants turned into note durations ---------
+
+			durations = searchwords.collect({arg word;
+					word.separate.collect({arg char;
+						if(char[0].isVowel, {
+							if(char[0].ascii<90, {1+((tempo.reciprocal/4).rand)}, 
+								{if(char[0].ascii<120, {0.67+((tempo.reciprocal/6).rand)}, 
+									{0.5+((tempo.reciprocal/6).rand)}) } 
+							)}, 
+							{if(char[0].ascii<90, {1+((tempo.reciprocal/4).rand)}, 
+								{if(char[0].ascii<120, {1.5+((tempo.reciprocal/6).rand)}, 
+									{0.5+((tempo.reciprocal/6).rand)}) }) 
+						});
+					}) ++ (word.size/10).round(0.5); // silence between each word depends on its length
+				});
+				
+			// --------- SUSTAIN: vowels/consonants turned into note sustain ---------
 		
-		durations = searchwords.collect({arg word;
-				word.separate.collect({arg char;
-					if(char[0].isVowel, {if(char[0].ascii<112, {1+((tempo.reciprocal/4).rand)}, {0.5+((tempo.reciprocal/6).rand)})}, {if(char[0].ascii<112, {1+((tempo.reciprocal/7).rand)}, {0.5+((tempo.reciprocal/9).rand)}) });
-				}) ++ (word.size/10).round(0.5); // silence between each word depends on its length
-			});
-			
-		// --------- SUSTAIN: vowels/consonants turned into note sustain ---------
-	
-		sustain = searchwords.collect({arg word;
-				word.separate.collect({arg char;
-					if(char[0].isVowel, {if(char[0].ascii<112, {0.9-((tempo/10).rand)}, {0.4-((tempo/20).rand)})}, {if(char[0].ascii<112, {0.9-((tempo/10).rand)}, {0.4-((tempo/20).rand)}) });
-				}) ++ (word.size/10); // the sustain is a little shorter than the note
-			});
+			sustain = searchwords.collect({arg word;
+					word.separate.collect({arg char;
+						if(char[0].isVowel, {
+							if(char[0].ascii<90, {0.9-((tempo.reciprocal/4).rand)}, 
+								{if(char[0].ascii<120, {0.57-((tempo.reciprocal/6).rand)}, 
+								{0.4-((tempo.reciprocal/6).rand)}) } 
+							)}, 
+							{if(char[0].ascii<90, {0.9-((tempo.reciprocal/4).rand)}, 
+								{if(char[0].ascii<120, {1.4-((tempo.reciprocal/6).rand)}, 
+									{0.4-((tempo.reciprocal/6).rand)}) }) });
+					}) ++ (word.size/10); // the sustain is a little shorter than the note
+				});
+
+
 		},{
-		// --------- DURATIONS: vowels/consonants turned into note durations ---------
+			// --------- DURATIONS: vowels/consonants turned into note durations ---------
+			
+			durations = searchwords.collect({arg word;
+					word.separate.collect({arg char;
+						if(char[0].isVowel, {if(char[0].ascii<112, {1}, {0.5})}, {if(char[0].ascii<112, {0.5}, {0.25}) });
+					}) ++ (word.size/15).round(0.25); // silence between each word depends on its length
+				});
+				
+			// --------- SUSTAIN: vowels/consonants turned into note sustain ---------
 		
-		durations = searchwords.collect({arg word;
-				word.separate.collect({arg char;
-					if(char[0].isVowel, {if(char[0].ascii<112, {1}, {0.5})}, {if(char[0].ascii<112, {0.5}, {0.25}) });
-				}) ++ (word.size/15).round(0.25); // silence between each word depends on its length
-			});
-			
-		// --------- SUSTAIN: vowels/consonants turned into note sustain ---------
-	
-		sustain = searchwords.collect({arg word;
-				word.separate.collect({arg char;
-					if(char[0].isVowel, {if(char[0].ascii<112, {0.8}, {0.4})}, {if(char[0].ascii<112, {0.4}, {0.25}) });
-				}) ++ (word.size/10)-0.1; // the sustain is a little shorter than the note
-			});
-			
+			sustain = searchwords.collect({arg word;
+					word.separate.collect({arg char;
+						if(char[0].isVowel, {if(char[0].ascii<112, {0.8}, {0.4})}, {if(char[0].ascii<112, {0.4}, {0.25}) });
+					}) ++ (word.size/10)-0.1; // the sustain is a little shorter than the note
+				});
 		});
+
 		// --------- SET PITCH: (males tonic = 76, objects = 79, females = 82) ---------
-		
+
 		notes = notes + switch(gender) {1} {76+numwhistlestoday} {2} {79+numwhistlestoday} {3} {82+numwhistlestoday};
 		
 		// --------- MAKE PATTERN: vowels/consonants turned into note durations ---------
@@ -148,7 +186,7 @@ Whistler {
 		sustainpatterns = sustain.collect({ arg array; Pseq(array, 1) });
 		trackduration = durations.flatten.sum*tempo.reciprocal;
 
-		scorepattern = Pbind(\instrument, \whistler,
+		scorepattern = Pbind(\instrument, 	\whistler,
 						   \midinote, 	Pseq(notepatterns, 1), 
 						   \dur,  		Pseq(durpatterns, 1),
 						   \sustain,  	Pseq(sustainpatterns, 1),
@@ -156,42 +194,61 @@ Whistler {
 						   \amp, 			1
 					 );
 		
+		envirpattern = Pbind(\instrument, 	\wsampler, 
+							\bufnum, 		envirbuffer.bufnum, 
+							\startPos, 	(44100*60*2).rand, // select a random frame in the first 2 minutes
+							\amp, 		1, 
+							\dur, 		Pseq([trackduration], 1)
+					  );
+
 		// future robots will use more info (location, environment, weather) to control environment (space)
+		// mainpattern = Pfx(envirpattern, \whistlerspace, 
 		mainpattern = Pfx(scorepattern, \whistlerspace, 
-					     \mix, 	0.2, 
-						\rtime, 	0.2, 
+					    	\mix, 	0.2, 
+						\rtime, 	0.2,  
 						\damp, 	0.2, 
 						\time, 	trackduration, 
 						\fromA, 	from, 
 						\toB, 	to
 					);
 		
+		mixerpattern = Ppar([ envirpattern, mainpattern ], 1);
+		
 		// --------- EITHER RENDER or PLAY (in dev mode)  ---------
 
 		if(renderMode.not, { // if in development mode
 			scorepattern.asCompileString.postln;
-			mainpattern.play;
-		}, {
-			"... about to render ...".postln;
 			("--> Trackduration :" + trackduration).postln;
-			("--> Trackname :" + ("~/" ++ trackname).standardizePath).postln;
-			this.render(mainpattern, durations.flatten.sum+0.2); // renderdurations are different from track dur (due to TempoClock)
+			("--> Duration Sum :" + durations.flatten.sum).postln;
+			mixerpattern.play;
+		}, {
+			this.render(mixerpattern, durations.flatten.sum+0.2); // renderdurations are different from track dur (due to TempoClock)
 		});
 
 	}
-	
+
 	render {arg pattern, renderduration;
-			
-		// pattern rendering do not render according to changed tempoclock.
-		// thus the specific renderduration arg (as opposed to using the 'trackduration' variable)
-		// an SC bug?
-			
+		var whistlescore, renderFunc;
+		
+/*		
 		pattern.render(
 			("~/"++trackname).standardizePath, 
 			renderduration, 
 			sampleFormat: "int16", 
 			options:serveroptions
 		);
+*/
+
+		whistlescore = pattern.asScore(renderduration);
+		whistlescore.score = whistlescore.score.addFirst([0.0, envirbuffer.allocReadMsg(envirsound)]);
+		whistlescore.recordNRT("whistle-oscFile", 
+							outputFilePath: ("~/"++trackname).standardizePath,
+							sampleRate: 22050,
+							sampleFormat: "int16", 
+							options: serveroptions,
+							duration: renderduration,
+							completionString: "; rm whistle-oscFile"
+						);
 		
 		// The 'BeatBoxer' class will send '/rendered_beatbox' back to Python
 		// NOTE: The 2 sec wait before announcing to Python is needed since in SC 3.4, there is no doneMessage
@@ -200,23 +257,17 @@ Whistler {
 		{ python.sendMsg('/rendered_whistle', trackID, trackname) }.defer(2); // wait 2 secs and send to Python.
 
 	}
-	
+
 	addSynthDefs {
 
 		"... adding synthdefs ...".postln;
+		envirsoundsArray =  (Platform.userAppSupportDir +/+  "sounds/whistling/*").pathMatch; // the background sounds 
+		envirsound = envirsoundsArray.choose; // choose one
+		envirbuffer = Buffer.read(Server.default, envirsound); // and load into buffer if used in realtime mode
 		
-		SynthDef(\whistlerspace, { arg mix=0.2, rtime=0.1, damp=0.1, speed=2, time = 14, fromA= -0.8, toB=0.8 ;
-			var in, ampsig, reverbsig, pansig;
-			in = In.ar(0, 1);
-			ampsig = EnvGen.ar(Env.linen(speed*0.5, time-speed, speed*0.5, 1), doneAction:2);
-			reverbsig = FreeVerb.ar(in * ampsig, mix, rtime, damp);
-			pansig = Pan2.ar(reverbsig, Line.kr(fromA, toB, time));
-			XOut.ar(0, 1, pansig);
-		}, #[0.1, 0.1, 0.1, 0.1, 0.1, 0.1]).store;
+		// version 11 of whistling synthdef (blown filter limiters put in place - especially since Nyquist is 11025 Hz - and amp added):
 		
-		// version 11 of whistling synthdef (blown filter limiters put in place and amp added):
-		
-		SynthDef(\whistler, {arg freq=440, amp=1, gate=1, noiseamp=0.3, pureamp=1, cutoff=5, attacknoise = 0.6, guttnoise=0.15, vibrato=1.3, pitchslide=0.09;
+		SynthDef(\whistler, {arg freq=440, amp=0.1, gate=1, noiseamp=0.3, pureamp=1, cutoff=5, attacknoise = 0.6, guttnoise=0.15, vibrato=1.3, pitchslide=0.09;
 			var signal, unienv;
 			var harmonics, noisesource;
 			var onset, onsetenv;
@@ -238,6 +289,7 @@ Whistler {
 						Saw.ar(freq, 0.001 * pureamp * EnvGen.ar(Env.adsr(Rand(0.0001, 0.2), Rand(0.2, 0.5), Rand(0.4, 0.8), Rand(0.1, 0.2))))
 						+
 						PinkNoise.ar(0.03 * noiseamp * EnvGen.ar(Env.adsr(Rand(0.0001, 0.2), Rand(0.2, 0.5), Rand(0.4, 0.8), Rand(0.1, 0.2)))));
+						
 			noisesource = 
 					BPF.ar(BrownNoise.ar(0.5 * noiseamp * EnvGen.ar(Env.adsr(Rand(0.0001, 0.2), Rand(0.2, 0.5), Rand(0.4, 0.8), Rand(0.1, 0.2))) ), freq, 0.1)
 					+ 
@@ -247,7 +299,28 @@ Whistler {
 			signal = LPF.ar(signal, 1000); // make sure high pitches loose the harmonics (become too edgy up there)
 			unienv = EnvGen.ar(Env.asr(0.0001, 1, 0.2), gate, doneAction:2); // reverb time?
 			signal = (signal * unienv) + (onset * onsetenv);
-			Out.ar(0, LeakDC.ar(signal*(4.5*amp)));
+			Out.ar(0, Limiter.ar(LeakDC.ar(signal*(3.9*amp))));
 		}).store;
+		
+		SynthDef(\wsampler, {arg out=0, bufnum = 0, amp=0.9, startPos=0, dur=14, gate=1;
+			var sound, pan;
+			 // rate 2, since rendering sample rate is 22050, but source soundfiles are 44.1 K
+			 // changed (in helsinki 16 May 2012) sample rate to 44100
+			sound = PlayBuf.ar(2, bufnum, 1, startPos: startPos, loop: 1) * amp;
+			//sound = PlayBuf.ar(1, bufnum, 1, startPos: startPos, loop: 1) * amp;   // source files are stereo
+			pan = sound * EnvGen.kr(Env.linen(0.2, dur-0.4, 0.2), gate, doneAction: 2);
+			// pan = Pan2.ar( sound * EnvGen.kr(Env.linen(0.2, dur, 0.2), gate, doneAction: 2), 0);
+			Out.ar(0, pan);
+		}).store;
+				
+		SynthDef(\whistlerspace, { arg mix=0.2, rtime=0.1, damp=0.1, speed=2, time = 14, fromA= -0.8, toB=0.8 ;
+			var in, ampsig, reverbsig, pansig;
+			in = In.ar(0, 1);
+			ampsig = EnvGen.ar(Env.linen(speed*0.5, time-speed, speed*0.5, 1), doneAction:2);
+			reverbsig = FreeVerb.ar(in * ampsig, mix, rtime, damp);
+			pansig = Pan2.ar(reverbsig, Line.kr(fromA, toB, time));
+			XOut.ar(0, 1, pansig);
+		}, #[0.1, 0.1, 0.1, 0.1, 0.1, 0.1]).store;
+
 	}
 }
